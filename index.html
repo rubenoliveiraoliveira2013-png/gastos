@@ -65,12 +65,12 @@ input:focus,select:focus,button:focus-visible{outline:2px solid var(--acc);outli
     <div class="row"><span id="gasto"></span><span id="orc"></span></div>
   </section>
 
-  <section class="card">
+  <section class="card" id="novo">
     <h2>Novo gasto</h2>
     <label for="desc">O que foi?</label>
     <input id="desc" placeholder="Ex.: almoço na cantina" maxlength="40">
     <div class="two">
-      <div><label for="val">Valor (€)</label><input id="val" type="number" inputmode="decimal" step="0.01" min="0" placeholder="0,00"></div>
+      <div><label for="val">Valor (€)</label><input id="val" type="text" inputmode="decimal" autocomplete="off" placeholder="0,00"></div>
       <div><label for="cat">Categoria</label><select id="cat"></select></div>
     </div>
     <label for="dia">Data</label>
@@ -91,7 +91,7 @@ input:focus,select:focus,button:focus-visible{outline:2px solid var(--acc);outli
   <section class="card">
     <h2>Dinheiro para gastar</h2>
     <label for="budget">Quanto dinheiro tens para gastar (€)</label>
-    <input id="budget" type="number" inputmode="decimal" step="1" min="0" placeholder="Ex.: 400">
+    <input id="budget" type="text" inputmode="decimal" autocomplete="off" placeholder="Ex.: 400">
   </section>
 </main>
 
@@ -109,7 +109,7 @@ let cur=new Date();cur.setDate(1);
 const ym=()=>iso(cur).slice(0,7);
 
 $("cat").innerHTML=CATS.map(c=>`<option>${c[0]}</option>`).join("");
-$("dia").value=today;$("dia").max=today;
+$("dia").value=today;$("dia").max=today;$("dia").min=today.slice(0,7)+"-01";
 $("budget").value=S.budget;
 
 function esc(s){return s.replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]))}
@@ -119,6 +119,7 @@ function render(){
   const tot=m.reduce((s,i)=>s+i.v,0), left=S.budget-tot;
   $("mes").textContent=cur.toLocaleDateString("pt-PT",{month:"long",year:"numeric"});
   $("resta").textContent=eur(left);
+  const past=ym()<today.slice(0,7);$("novo").style.display=past?"none":"";
   $("next").disabled=ym()>=today.slice(0,7);$("next").style.opacity=$("next").disabled?.25:1;
   $("resta").className="big"+(left<0?" neg":"");
   const pct=S.budget>0?Math.min(100,tot/S.budget*100):(tot>0?100:0);
@@ -131,22 +132,24 @@ function render(){
   const rows=CATS.filter(c=>by[c[0]]).sort((a,b)=>by[b[0]]-by[a[0]]);
   $("cats").innerHTML=rows.length?rows.map(c=>`<div class="cat"><span class="dot" style="background:${c[1]}"></span><div class="n">${c[0]}<div class="b"><i style="width:${by[c[0]]/tot*100}%;background:${c[1]}"></i></div></div><span class="v">${eur(by[c[0]])}</span></div>`).join(""):'<p class="empty">Ainda não há gastos neste mês.</p>';
 
-  $("lista").innerHTML=m.length?m.map(i=>{const c=CATS.find(x=>x[0]===i.c)||CATS[CATS.length-1];return `<div class="it"><span class="dot" style="background:${c[1]}"></span><div class="t"><b>${esc(i.t||i.c)}</b><span>${i.c} · ${i.d.slice(8)}/${i.d.slice(5,7)}</span></div><b>${eur(i.v)}</b><button data-id="${i.id}" aria-label="Apagar gasto">✕</button></div>`}).join(""):'<p class="empty">Adiciona o teu primeiro gasto acima.</p>';
+  $("lista").innerHTML=m.length?m.map(i=>{const c=CATS.find(x=>x[0]===i.c)||CATS[CATS.length-1];return `<div class="it"><span class="dot" style="background:${c[1]}"></span><div class="t"><b>${esc(i.t||i.c)}</b><span>${i.c} · ${i.d.slice(8)}/${i.d.slice(5,7)}</span></div><b>${eur(i.v)}</b>${past?"":`<button data-id="${i.id}" aria-label="Apagar gasto">✕</button>`}</div>`}).join(""):'<p class="empty">Adiciona o teu primeiro gasto acima.</p>';
 }
 
 $("add").onclick=()=>{
-  const v=parseFloat(String($("val").value).replace(",","."));
+  const v=num($("val").value);
   if(!(v>0)){$("val").focus();return}
-  if(($("dia").value||today)>today){$("dia").value=today;return}
+  if(($("dia").value||today)>today||($("dia").value||today)<today.slice(0,7)+"-01"){$("dia").value=today;return}
   S.items.push({id:Date.now(),d:$("dia").value||iso(new Date()),c:$("cat").value,t:$("desc").value.trim(),v:Math.round(v*100)/100});
   const d=new Date(($("dia").value||iso(new Date()))+"T00:00");cur=new Date(d.getFullYear(),d.getMonth(),1);
   $("desc").value="";$("val").value="";save();render();
 };
 $("lista").onclick=e=>{const id=e.target.dataset&&e.target.dataset.id;if(!id)return;S.items=S.items.filter(i=>String(i.id)!==id);save();render()};
-$("budget").oninput=e=>{S.budget=Math.max(0,parseFloat(e.target.value)||0);save();render()};
+const num=s=>{const n=parseFloat(String(s).replace(/\s/g,"").replace(",","."));return isFinite(n)?n:0};
+$("budget").onchange=e=>{S.budget=Math.max(0,Math.round(num(e.target.value)*100)/100);e.target.value=S.budget;save();render()};
+$("budget").onkeydown=e=>{if(e.key==="Enter")e.target.blur()};
 $("prev").onclick=()=>{cur=new Date(cur.getFullYear(),cur.getMonth()-1,1);render()};
 $("next").onclick=()=>{if(ym()>=today.slice(0,7))return;cur=new Date(cur.getFullYear(),cur.getMonth()+1,1);render()};
-function tick(){const t=iso(new Date());if(t===today)return;const wasCur=ym()===today.slice(0,7);const had=$("dia").value===today;today=t;$("dia").max=t;if(had)$("dia").value=t;if(wasCur){cur=new Date();cur.setDate(1)}render()}
+function tick(){const t=iso(new Date());if(t===today)return;const wasCur=ym()===today.slice(0,7);const had=$("dia").value===today;today=t;$("dia").max=t;$("dia").min=t.slice(0,7)+"-01";if(had)$("dia").value=t;if(wasCur){cur=new Date();cur.setDate(1)}render()}
 setInterval(tick,60000);
 document.addEventListener("visibilitychange",()=>{if(!document.hidden)tick()});
 render();
