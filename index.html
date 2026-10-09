@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Gastos do mês</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#3b4bff">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#eef1ff;--card:#fff;--ink:#1b1b3a;--mute:#6b6e91;--acc:#3b4bff;--accink:#fff;--line:#dde1fb;--bad:#e5484d;--ok:#16a06a;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#14152b;--card:#1e2040;--ink:#eceeff;--mute:#9a9dc8;--acc:#7b86ff;--accink:#14152b;--line:#2d3060;--bad:#ff7b80;--ok:#4cd39b}}
+:root[data-theme="dark"]{--bg:#14152b;--card:#1e2040;--ink:#eceeff;--mute:#9a9dc8;--acc:#7b86ff;--accink:#14152b;--line:#2d3060;--bad:#ff7b80;--ok:#4cd39b}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 16px/1.4 "Bricolage Grotesque",system-ui,sans-serif}
+main{max-width:480px;margin:0 auto;padding:16px 16px 40px}
+.nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.nav button{background:none;border:0;color:var(--ink);font-size:28px;padding:4px 14px;cursor:pointer}
+.nav h1{font-size:18px;margin:0;font-weight:600;text-transform:capitalize}
+.hero{padding:18px 4px 10px}
+.hero small{color:var(--mute)}
+.big{font-size:56px;font-weight:800;letter-spacing:-2px;line-height:1.05}
+.big.neg{color:var(--bad)}
+.bar{height:10px;border-radius:6px;background:var(--line);margin:14px 0 6px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--acc);border-radius:6px;transition:width .3s}
+.bar i.over{background:var(--bad)}
+.row{display:flex;justify-content:space-between;color:var(--mute);font-size:14px}
+.card{background:var(--card);border-radius:18px;padding:16px;margin-top:14px;border:1px solid var(--line)}
+h2{font-size:16px;margin:0 0 12px;font-weight:600}
+label{display:block;font-size:13px;color:var(--mute);margin:10px 0 4px}
+input,select{width:100%;font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:12px}
+input:focus,select:focus,button:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.btn{width:100%;margin-top:14px;background:var(--acc);color:var(--accink);border:0;border-radius:12px;padding:14px;font:600 16px inherit;font-family:inherit;cursor:pointer}
+.cat{display:flex;align-items:center;gap:10px;margin:10px 0}
+.dot{width:10px;height:10px;border-radius:50%;flex:none}
+.cat .n{flex:1}
+.cat .b{height:6px;background:var(--line);border-radius:4px;margin-top:4px}
+.cat .b i{display:block;height:100%;border-radius:4px}
+.cat .v{font-weight:600;white-space:nowrap}
+.it{display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--line)}
+.it:first-of-type{border-top:0}
+.it .t{flex:1;min-width:0}
+.it .t b{display:block;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.it .t span{font-size:13px;color:var(--mute)}
+.it button{background:none;border:0;color:var(--mute);font-size:20px;cursor:pointer;padding:6px}
+.empty{color:var(--mute);margin:0}
+</style>
+</head>
+<body>
+<main>
+  <div class="nav">
+    <button id="prev" aria-label="Mês anterior">‹</button>
+    <h1 id="mes"></h1>
+    <button id="next" aria-label="Mês seguinte">›</button>
+  </div>
+
+  <section class="hero">
+    <small>Ainda tens</small>
+    <div class="big" id="resta"></div>
+    <div class="bar"><i id="fill"></i></div>
+    <div class="row"><span id="gasto"></span><span id="orc"></span></div>
+  </section>
+
+  <section class="card">
+    <h2>Novo gasto</h2>
+    <label for="desc">O que foi?</label>
+    <input id="desc" placeholder="Ex.: almoço na cantina" maxlength="40">
+    <div class="two">
+      <div><label for="val">Valor (€)</label><input id="val" type="number" inputmode="decimal" step="0.01" min="0" placeholder="0,00"></div>
+      <div><label for="cat">Categoria</label><select id="cat"></select></div>
+    </div>
+    <label for="dia">Data</label>
+    <input id="dia" type="date">
+    <button class="btn" id="add">Adicionar gasto</button>
+  </section>
+
+  <section class="card">
+    <h2>Por categoria</h2>
+    <div id="cats"></div>
+  </section>
+
+  <section class="card">
+    <h2>Gastos do mês</h2>
+    <div id="lista"></div>
+  </section>
+
+  <section class="card">
+    <h2>Dinheiro para gastar</h2>
+    <label for="budget">Quanto dinheiro tens para gastar (€)</label>
+    <input id="budget" type="number" inputmode="decimal" step="1" min="0" placeholder="Ex.: 400">
+  </section>
+</main>
+
+<script>
+const CATS=[["Comida","#ff8a3d"],["Transportes","#3b4bff"],["Casa","#16a06a"],["Lazer","#e24fa8"],["Estudos","#8a5cf6"],["Compras","#e5b800"],["Saúde","#2bb3c9"],["Jogos","#6d28d9"],["Subscrições","#f43f5e"],["Roupa","#0ea5a4"],["Telemóvel","#64748b"],["Desporto","#65a30d"],["Presentes","#d946ef"],["Outros","#8c8fb5"]];
+const KEY="gastos-v1";
+let S={budget:400,items:[]};
+try{const r=localStorage.getItem(KEY);if(r)S=Object.assign(S,JSON.parse(r))}catch(e){}
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}};
+const $=id=>document.getElementById(id);
+const eur=n=>new Intl.NumberFormat("pt-PT",{style:"currency",currency:"EUR"}).format(n);
+const iso=d=>d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+let today=iso(new Date());
+let cur=new Date();cur.setDate(1);
+const ym=()=>iso(cur).slice(0,7);
+
+$("cat").innerHTML=CATS.map(c=>`<option>${c[0]}</option>`).join("");
+$("dia").value=today;$("dia").max=today;
+$("budget").value=S.budget;
+
+function esc(s){return s.replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]))}
+
+function render(){
+  const m=S.items.filter(i=>i.d.startsWith(ym())).sort((a,b)=>b.d.localeCompare(a.d)||b.id-a.id);
+  const tot=m.reduce((s,i)=>s+i.v,0), left=S.budget-tot;
+  $("mes").textContent=cur.toLocaleDateString("pt-PT",{month:"long",year:"numeric"});
+  $("resta").textContent=eur(left);
+  $("next").disabled=ym()>=today.slice(0,7);$("next").style.opacity=$("next").disabled?.25:1;
+  $("resta").className="big"+(left<0?" neg":"");
+  const pct=S.budget>0?Math.min(100,tot/S.budget*100):(tot>0?100:0);
+  $("fill").style.width=pct+"%";
+  $("fill").className=left<0?"over":"";
+  $("gasto").textContent="Gasto: "+eur(tot);
+  $("orc").textContent="Tenho: "+eur(S.budget);
+
+  const by={};m.forEach(i=>by[i.c]=(by[i.c]||0)+i.v);
+  const rows=CATS.filter(c=>by[c[0]]).sort((a,b)=>by[b[0]]-by[a[0]]);
+  $("cats").innerHTML=rows.length?rows.map(c=>`<div class="cat"><span class="dot" style="background:${c[1]}"></span><div class="n">${c[0]}<div class="b"><i style="width:${by[c[0]]/tot*100}%;background:${c[1]}"></i></div></div><span class="v">${eur(by[c[0]])}</span></div>`).join(""):'<p class="empty">Ainda não há gastos neste mês.</p>';
+
+  $("lista").innerHTML=m.length?m.map(i=>{const c=CATS.find(x=>x[0]===i.c)||CATS[CATS.length-1];return `<div class="it"><span class="dot" style="background:${c[1]}"></span><div class="t"><b>${esc(i.t||i.c)}</b><span>${i.c} · ${i.d.slice(8)}/${i.d.slice(5,7)}</span></div><b>${eur(i.v)}</b><button data-id="${i.id}" aria-label="Apagar gasto">✕</button></div>`}).join(""):'<p class="empty">Adiciona o teu primeiro gasto acima.</p>';
+}
+
+$("add").onclick=()=>{
+  const v=parseFloat(String($("val").value).replace(",","."));
+  if(!(v>0)){$("val").focus();return}
+  if(($("dia").value||today)>today){$("dia").value=today;return}
+  S.items.push({id:Date.now(),d:$("dia").value||iso(new Date()),c:$("cat").value,t:$("desc").value.trim(),v:Math.round(v*100)/100});
+  const d=new Date(($("dia").value||iso(new Date()))+"T00:00");cur=new Date(d.getFullYear(),d.getMonth(),1);
+  $("desc").value="";$("val").value="";save();render();
+};
+$("lista").onclick=e=>{const id=e.target.dataset&&e.target.dataset.id;if(!id)return;S.items=S.items.filter(i=>String(i.id)!==id);save();render()};
+$("budget").oninput=e=>{S.budget=Math.max(0,parseFloat(e.target.value)||0);save();render()};
+$("prev").onclick=()=>{cur=new Date(cur.getFullYear(),cur.getMonth()-1,1);render()};
+$("next").onclick=()=>{if(ym()>=today.slice(0,7))return;cur=new Date(cur.getFullYear(),cur.getMonth()+1,1);render()};
+function tick(){const t=iso(new Date());if(t===today)return;const wasCur=ym()===today.slice(0,7);const had=$("dia").value===today;today=t;$("dia").max=t;if(had)$("dia").value=t;if(wasCur){cur=new Date();cur.setDate(1)}render()}
+setInterval(tick,60000);
+document.addEventListener("visibilitychange",()=>{if(!document.hidden)tick()});
+render();
+if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js").catch(()=>{});
+</script>
+</body>
+</html>
